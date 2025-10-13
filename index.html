@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Third Person Open World with Jump</title>
+  <style>
+    html, body {
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: black;
+    }
+    #renderCanvas {
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+  </style>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  
+  <script>
+    const canvas = document.getElementById("renderCanvas");
+    const engine = new BABYLON.Engine(canvas, true);
+
+    const createScene = () => {
+      const scene = new BABYLON.Scene(engine);
+
+      // Gravity
+      const gravity = -0.02;
+      let verticalVelocity = 0;
+      let isGrounded = true;
+
+      // Light
+      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+      light.intensity = 0.9;
+
+      // Ground
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 200, height: 200}, scene);
+      const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
+      groundMaterial.diffuseColor = new BABYLON.Color3(0.3, 0.6, 0.3);
+      ground.material = groundMaterial;
+
+      // Player (sphere placeholder)
+      const player = BABYLON.MeshBuilder.CreateSphere("player", {diameter: 2}, scene);
+      player.position.y = 1;
+
+      // ArcRotateCamera for mouse control
+      const camera = new BABYLON.ArcRotateCamera("arcCam", Math.PI / 2, Math.PI / 3, 15, player.position, scene);
+      camera.attachControl(canvas, true);
+
+      // ❌ Disable default keyboard inputs so arrow keys don't move camera
+      camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
+
+      camera.lowerRadiusLimit = 5;
+      camera.upperRadiusLimit = 30;
+      camera.wheelDeltaPercentage = 0.01;
+
+      // Random objects
+      for (let i = 0; i < 50; i++) {
+        const box = BABYLON.MeshBuilder.CreateBox("box" + i, {size: 2}, scene);
+        box.position.x = Math.random() * 180 - 90;
+        box.position.z = Math.random() * 180 - 90;
+        box.position.y = 1;
+      }
+
+      // Input map
+      const inputMap = {};
+      scene.actionManager = new BABYLON.ActionManager(scene);
+      scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+        BABYLON.ActionManager.OnKeyDownTrigger, evt => {
+          inputMap[evt.sourceEvent.key.toLowerCase()] = true;
+        }
+      ));
+      scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+        BABYLON.ActionManager.OnKeyUpTrigger, evt => {
+          inputMap[evt.sourceEvent.key.toLowerCase()] = false;
+        }
+      ));
+
+      scene.onBeforeRenderObservable.add(() => {
+        let speed = 0.3;
+
+        // Movement relative to camera
+        let forward = camera.getDirection(BABYLON.Axis.Z);
+        let right = camera.getDirection(BABYLON.Axis.X);
+        forward.y = 0;
+        right.y = 0;
+        forward.normalize();
+        right.normalize();
+
+        if (inputMap["w"] || inputMap["arrowup"]) {
+          player.moveWithCollisions(forward.scale(speed));
+        }
+        if (inputMap["s"] || inputMap["arrowdown"]) {
+          player.moveWithCollisions(forward.scale(-speed));
+        }
+        if (inputMap["a"] || inputMap["arrowleft"]) {
+          player.moveWithCollisions(right.scale(-speed));
+        }
+        if (inputMap["d"] || inputMap["arrowright"]) {
+          player.moveWithCollisions(right.scale(speed));
+        }
+
+        // Jumping
+        if (inputMap[" "] && isGrounded) {  // spacebar pressed
+          verticalVelocity = 0.4;  // jump strength (not too high)
+          isGrounded = false;
+        }
+
+        // Apply gravity
+        if (!isGrounded) {
+          player.position.y += verticalVelocity;
+          verticalVelocity += gravity;
+
+          if (player.position.y <= 1) { // ground level
+            player.position.y = 1;
+            isGrounded = true;
+            verticalVelocity = 0;
+          }
+        }
+
+        // Keep camera on player
+        camera.target = player.position;
+      });
+
+      return scene;
+    };
+
+    const scene = createScene();
+    engine.runRenderLoop(() => scene.render());
+    window.addEventListener("resize", () => engine.resize());
+  </script>
+</body>
+</html>

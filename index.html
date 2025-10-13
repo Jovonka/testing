@@ -1,139 +1,261 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Third Person Open World with Jump</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Breathing Sphere Interaction</title>
   <style>
+    * { box-sizing: border-box; }
+
     html, body {
-      overflow: hidden;
       width: 100%;
       height: 100%;
       margin: 0;
-      padding: 0;
-      background: black;
+      background-color: rgb(255, 254, 245);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      perspective: 1000px;
+      overflow: hidden;
+      font-family: sans-serif;
     }
-    #renderCanvas {
-      width: 100%;
+
+    /* Top header */
+    .header {
+      position: absolute;
+      top: 2rem;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #ff8c42;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+    .header.show {
+      opacity: 1;
+    }
+
+    /* Scene container */
+    .scene {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.6s cubic-bezier(0.25, 1, 0.3, 1);
+      transform: scale(1);
+    }
+    .scene.expanded {
+      transform: scale(1.6);
+    }
+
+    /* Ripple Rings - always visible */
+    .b {
+      height: 220px;
+      width: 220px;
+      animation: spin 7s linear infinite;
+      transform-style: preserve-3d;
+      position: relative;
+    }
+    .c {
+      height: 220px;
+      width: 220px;
+      border: 1px solid #F06;
+      border-radius: 99em;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      margin: auto;
+    }
+    @keyframes spin {
+      from { transform: rotateY(0deg) rotateX(0deg) rotateZ(0deg); }
+      to { transform: rotateY(360deg) rotateX(-360deg) rotateZ(360deg); }
+    }
+
+    /* Sphere - fades in/out */
+    .sphere {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      margin: auto;
+      width: 45vmin;
+      height: 45vmin;
+      transform-style: preserve-3d;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .sphere.visible {
+      opacity: 1;
+    }
+    .sphere.spin {
+      animation: spinSphere 20s infinite linear;
+    }
+
+    [class^="ring"] {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      margin: auto;
+      width: 45vmin;
+      height: 45vmin;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    @keyframes spinSphere {
+      from { transform: rotateZ(0deg) rotateX(0deg) rotateY(0deg); }
+      to { transform: rotateZ(360deg) rotateX(-360deg) rotateY(360deg); }
+    }
+
+    /* Progress bar container */
+    .progress-container {
+      position: absolute;
+      bottom: 2rem;
+      width: 60%;
+      max-width: 400px;
+      height: 20px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .progress-container.show {
+      opacity: 1;
+    }
+
+    /* Progress bar itself */
+    .progress-bar {
+      position: absolute;
+      top: 0; left: 0;
       height: 100%;
-      touch-action: none;
+      width: 0%;
+      background: linear-gradient(90deg, #ffcc33, #ff6633);
+      transition: width 0.1s linear;
+    }
+
+    /* Countdown text */
+    .countdown {
+      position: relative;
+      z-index: 1;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 4px rgba(0,0,0,0.3);
+      font-size: 1rem;
     }
   </style>
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
-  <canvas id="renderCanvas"></canvas>
-  
+
+  <div class="header" id="header">Breathe In</div>
+
+  <div class="scene" id="scene">
+    <!-- Ripple rings always visible -->
+    <div class="b" id="rings"></div>
+    <!-- Sphere fades in/out -->
+    <div class="sphere" id="sphere"></div>
+  </div>
+
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="countdown" id="countdown">3</div>
+  </div>
+
   <script>
-    const canvas = document.getElementById("renderCanvas");
-    const engine = new BABYLON.Engine(canvas, true);
+    // Generate ripple rings (ALWAYS VISIBLE)
+    const ringsContainer = document.getElementById('rings');
+    const numRings = 45;
+    let colorHue = 330;
+    for (let i = 1; i <= numRings; i++) {
+      const c = document.createElement('div');
+      c.className = 'c';
+      c.style.borderColor = `hsl(${colorHue}, 100%, 50%)`;
+      c.style.animation = `spin ${numRings * 0.16}s linear ${i * 0.04}s infinite`;
+      c.style.opacity = (i * 0.006).toFixed(3);
+      ringsContainer.appendChild(c);
+      colorHue = (colorHue + 2) % 360;
+    }
 
-    const createScene = () => {
-      const scene = new BABYLON.Scene(engine);
+    // Generate sphere rings
+    const sphereContainer = document.getElementById('sphere');
+    const ringCount = 36;
+    const startHue = 60;
+    const endHue = 30;
+    for (let i = 1; i <= ringCount; i++) {
+      const ring = document.createElement('div');
+      ring.className = `ring${i}`;
+      const hue = startHue - ((startHue - endHue) * (i / ringCount));
+      const blur = 2 + (i * 2.2);
+      ring.style.transform = `rotateY(${i * 2}deg) rotateX(${i * 2}deg) rotateZ(${i * 3}deg)`;
+      ring.style.boxShadow = `
+        0 0 ${blur}px hsla(${hue}, 90%, 55%, 0.25),
+        inset 0 0 ${blur}px hsla(${hue}, 90%, 55%, 0.3)
+      `;
+      sphereContainer.appendChild(ring);
+    }
 
-      // Gravity
-      const gravity = -0.02;
-      let verticalVelocity = 0;
-      let isGrounded = true;
+    const sphere = document.getElementById('sphere');
+    const header = document.getElementById('header');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const countdown = document.getElementById('countdown');
+    const scene = document.getElementById('scene');
 
-      // Light
-      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-      light.intensity = 0.9;
+    let countdownTimer = null;
+    let progressInterval = null;
+    const totalTime = 3000;
 
-      // Ground
-      const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 200, height: 200}, scene);
-      const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
-      groundMaterial.diffuseColor = new BABYLON.Color3(0.3, 0.6, 0.3);
-      ground.material = groundMaterial;
+    function restartSphereAnimation() {
+      sphere.classList.remove('spin');
+      // Force reflow to reset animation
+      void sphere.offsetWidth;
+      sphere.classList.add('spin');
+    }
 
-      // Player (sphere placeholder)
-      const player = BABYLON.MeshBuilder.CreateSphere("player", {diameter: 2}, scene);
-      player.position.y = 1;
+    function startBreathing() {
+      restartSphereAnimation();
+      sphere.classList.add('visible');
+      scene.classList.add('expanded');
+      header.classList.add('show');
+      progressContainer.classList.add('show');
 
-      // ArcRotateCamera for mouse control
-      const camera = new BABYLON.ArcRotateCamera("arcCam", Math.PI / 2, Math.PI / 3, 15, player.position, scene);
-      camera.attachControl(canvas, true);
+      let remaining = 3;
+      countdown.textContent = remaining;
+      progressBar.style.width = '0%';
 
-      // ❌ Disable default keyboard inputs so arrow keys don't move camera
-      camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
+      const startTime = Date.now();
+      progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / totalTime, 1);
+        progressBar.style.width = `${progress * 100}%`;
+      }, 50);
 
-      camera.lowerRadiusLimit = 5;
-      camera.upperRadiusLimit = 30;
-      camera.wheelDeltaPercentage = 0.01;
-
-      // Random objects
-      for (let i = 0; i < 50; i++) {
-        const box = BABYLON.MeshBuilder.CreateBox("box" + i, {size: 2}, scene);
-        box.position.x = Math.random() * 180 - 90;
-        box.position.z = Math.random() * 180 - 90;
-        box.position.y = 1;
-      }
-
-      // Input map
-      const inputMap = {};
-      scene.actionManager = new BABYLON.ActionManager(scene);
-      scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-        BABYLON.ActionManager.OnKeyDownTrigger, evt => {
-          inputMap[evt.sourceEvent.key.toLowerCase()] = true;
+      countdownTimer = setInterval(() => {
+        remaining -= 1;
+        countdown.textContent = remaining;
+        if (remaining < 1) {
+          clearInterval(countdownTimer);
         }
-      ));
-      scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-        BABYLON.ActionManager.OnKeyUpTrigger, evt => {
-          inputMap[evt.sourceEvent.key.toLowerCase()] = false;
-        }
-      ));
+      }, 1000);
+    }
 
-      scene.onBeforeRenderObservable.add(() => {
-        let speed = 0.3;
+    function stopBreathing() {
+      sphere.classList.remove('visible');
+      scene.classList.remove('expanded');
+      header.classList.remove('show');
+      progressContainer.classList.remove('show');
+      clearInterval(countdownTimer);
+      clearInterval(progressInterval);
+      progressBar.style.width = '0%';
+      countdown.textContent = '3';
+    }
 
-        // Movement relative to camera
-        let forward = camera.getDirection(BABYLON.Axis.Z);
-        let right = camera.getDirection(BABYLON.Axis.X);
-        forward.y = 0;
-        right.y = 0;
-        forward.normalize();
-        right.normalize();
-
-        if (inputMap["w"] || inputMap["arrowup"]) {
-          player.moveWithCollisions(forward.scale(speed));
-        }
-        if (inputMap["s"] || inputMap["arrowdown"]) {
-          player.moveWithCollisions(forward.scale(-speed));
-        }
-        if (inputMap["a"] || inputMap["arrowleft"]) {
-          player.moveWithCollisions(right.scale(-speed));
-        }
-        if (inputMap["d"] || inputMap["arrowright"]) {
-          player.moveWithCollisions(right.scale(speed));
-        }
-
-        // Jumping
-        if (inputMap[" "] && isGrounded) {  // spacebar pressed
-          verticalVelocity = 0.4;  // jump strength (not too high)
-          isGrounded = false;
-        }
-
-        // Apply gravity
-        if (!isGrounded) {
-          player.position.y += verticalVelocity;
-          verticalVelocity += gravity;
-
-          if (player.position.y <= 1) { // ground level
-            player.position.y = 1;
-            isGrounded = true;
-            verticalVelocity = 0;
-          }
-        }
-
-        // Keep camera on player
-        camera.target = player.position;
-      });
-
-      return scene;
-    };
-
-    const scene = createScene();
-    engine.runRenderLoop(() => scene.render());
-    window.addEventListener("resize", () => engine.resize());
+    document.addEventListener('mousedown', startBreathing);
+    document.addEventListener('mouseup', stopBreathing);
+    document.addEventListener('touchstart', startBreathing);
+    document.addEventListener('touchend', stopBreathing);
   </script>
 </body>
 </html>

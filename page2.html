@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Page 2</title>
+<title>Page 2 – Trace Particles</title>
 <style>
   * {
     box-sizing: border-box;
@@ -21,6 +21,7 @@
     align-items: center;
     justify-content: center;
     background-color: rgb(248, 224, 255);
+    overflow: hidden;
   }
 
   /* Hamburger */
@@ -77,15 +78,55 @@
   }
   .side-menu a:hover { background: rgba(255, 204, 103, 0.3); }
 
-  /* Page content */
-  .content {
+  /* Verse Container */
+  .verse-container {
+    position: relative;
+    width: 90%;
+    max-width: 600px;
     text-align: center;
-    color: #a64b00;
-    font-size: 1.5rem;
+    padding: 30px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  .verse {
+    position: relative;
+    font-size: 1.2rem;
+    color: #4b2800;
+    line-height: 1.6;
+    z-index: 1;
+  }
+  .verse.revealed {
+    animation: glow 2s ease-out forwards;
+  }
+  @keyframes glow {
+    0% { text-shadow: none; }
+    50% { text-shadow: 0 0 10px #ffd9a6; }
+    100% { text-shadow: none; }
+  }
+
+  /* Particles */
+  .particle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle, #d8b08c 20%, #a64b00 90%);
+    border-radius: 50%;
+    opacity: 0.95;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    mix-blend-mode: multiply;
+  }
+  .particle.fade {
+    opacity: 0;
+    transform: scale(0.2);
+    pointer-events: none;
   }
 </style>
 </head>
 <body>
+<!-- Hamburger -->
 <div class="hamburger" id="hamburger">
   <div></div>
   <div></div>
@@ -99,18 +140,52 @@
   <a href="page4.html">Page 4</a>
 </nav>
 
-<div class="content">
-  <h1>Page 2</h1>
-  <p>This is a placeholder for future content.</p>
+<!-- Verse Area -->
+<div class="verse-container" id="verseContainer">
+  <div class="verse" id="verse">
+    But in my distress I cried out to the Lord; yes, I prayed to my God for help.<br>
+    He heard me from his sanctuary; my cry to him reached his ears.<br>
+    <strong>Psalm 18:6</strong>
+  </div>
 </div>
 
 <script>
+/* Hamburger */
 const hamburger = document.getElementById('hamburger');
 const sideMenu = document.getElementById('sideMenu');
 hamburger.addEventListener('click', ()=>{
   hamburger.classList.toggle('open');
   sideMenu.classList.toggle('open');
 });
+
+/* Particle Cover */
+const verseContainer = document.getElementById('verseContainer');
+const verse = document.getElementById('verse');
+let totalParticles = 120;
+let clearedParticles = 0;
+
+for (let i = 0; i < totalParticles; i++) {
+  const p = document.createElement('div');
+  p.classList.add('particle');
+  const size = Math.random() * 10 + 10;
+  p.style.width = p.style.height = size + 'px';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.top = Math.random() * 100 + '%';
+  verseContainer.appendChild(p);
+
+  // Clear when touched or hovered
+  const clearParticle = () => {
+    if (!p.classList.contains('fade')) {
+      p.classList.add('fade');
+      clearedParticles++;
+      if (clearedParticles === totalParticles) {
+        verse.classList.add('revealed');
+      }
+    }
+  };
+  p.addEventListener('mouseover', clearParticle);
+  p.addEventListener('touchstart', clearParticle);
+}
 </script>
 </body>
 </html>

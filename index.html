@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Breathing Sphere Interaction</title>
+<title>Breathing Sphere</title>
 <style>
   * { box-sizing: border-box; margin:0; padding:0; }
 
@@ -11,38 +11,61 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    font-family: sans-serif;
+    font-family: "Georgia", serif;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgb(255, 244, 225);
+    background-color: rgb(255, 250, 240);
     user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -webkit-tap-highlight-color: transparent;
   }
 
+  /* Scripture text at top */
+  .scripture {
+    position: absolute;
+    top: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 900px;
+    text-align: center;
+    font-size: 2.3vw;
+    line-height: 1.4;
+    color: #a64b00;
+    text-shadow: 0 0 12px rgba(255, 160, 60, 0.4);
+    pointer-events: none;
+    min-height: 10vh;
+    white-space: pre-wrap;
+    transition: opacity 1s ease;
+    opacity: 1;
+  }
+  .scripture.hidden {
+    opacity: 0;
+  }
+
+  /* Header near bottom */
   .header {
     position: absolute;
-    top: 2vh;
-    font-size: 4vw;
+    bottom: 8vh;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.5vw;
     font-weight: bold;
     color: #ff8c42;
     opacity: 0;
     transition: opacity 0.5s ease;
-    pointer-events: none;
+    text-align: center;
   }
-  .header.show { opacity: 1; }
+  .header.show { opacity: 0.9; }
 
   .scene {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 2s ease-in-out;
+    transition: transform 5s ease-in-out;
   }
   .scene.expanded { transform: scale(1.4); }
+  .scene.shrinking { transform: scale(0.6); }
 
   /* Ripple Rings */
   .b {
@@ -58,15 +81,15 @@
     margin:auto;
     width: 50vmin;
     height: 50vmin;
-    border-radius: 50%;
-    border: 1px solid #F06;
+    border-radius: 70%;
+    border: 3px solid rgb(255, 204, 103);
   }
   @keyframes spin {
     from { transform: rotateY(0deg) rotateX(0deg) rotateZ(0deg);}
     to { transform: rotateY(360deg) rotateX(-360deg) rotateZ(360deg);}
   }
 
-  /* Sphere Rings */
+  /* Sphere */
   .sphere {
     position: absolute;
     top:0; left:0; right:0; bottom:0;
@@ -74,45 +97,43 @@
     width: 50vmin;
     height: 50vmin;
     opacity: 0.5;
-    transition: opacity 0.6s ease;
     pointer-events: none;
     animation: spinSphere 20s linear infinite;
+    transition: transform 5s ease-in-out;
   }
-  .sphere.visible { opacity: 0.9; }
-
   [class^="ring"] {
     position: absolute;
     top:0; left:0; right:0; bottom:0;
     margin:auto;
     width:50vmin;
     height:50vmin;
-    border-radius: 50%;
+    border-radius: 60%;
     overflow:hidden;
   }
-
   @keyframes spinSphere {
     from { transform: rotateZ(0deg) rotateX(0deg) rotateY(0deg); }
     to { transform: rotateZ(360deg) rotateX(0deg) rotateY(0deg); }
   }
 
-  /* Progress */
+  /* Progress Bar - bottom */
   .progress-container {
     position: absolute;
-    top: 9vh;
+    bottom: 4vh;
+    left: 50%;
+    transform: translateX(-50%);
     width: 60%;
     max-width: 400px;
-    height: 4vh;
+    height: 1.2vh;
     background: rgba(0,0,0,0.1);
-    border-radius: 2vh;
+    border-radius: 1vh;
     overflow: hidden;
     opacity:0;
     transition: opacity 0.5s ease;
     display:flex;
     align-items:center;
     justify-content:center;
-    pointer-events:none;
   }
-  .progress-container.show { opacity:1; }
+  .progress-container.show { opacity:0.5; }
 
   .progress-bar {
     position: absolute;
@@ -121,19 +142,11 @@
     width:0%;
     background: linear-gradient(90deg,#ffcc33,#ff6633);
   }
-
-  .countdown {
-    position: relative;
-    z-index:1;
-    color:#fff;
-    font-weight:bold;
-    text-shadow:0 0 4px rgba(0,0,0,0.3);
-    font-size: 3vw;
-  }
 </style>
 </head>
 <body>
 
+<div class="scripture" id="scripture"></div>
 <div class="header" id="header">Breathe In</div>
 
 <div class="scene" id="scene">
@@ -143,90 +156,137 @@
 
 <div class="progress-container" id="progressContainer">
   <div class="progress-bar" id="progressBar"></div>
-  <div class="countdown" id="countdown">3</div>
 </div>
 
 <script>
-  // Generate ripple rings (ALWAYS VISIBLE)
-  const ringsContainer = document.getElementById('rings');
-  const numRings = 15;
-  let colorHue = 20;
-  for (let i = 1; i <= numRings; i++) {
-    const c = document.createElement('div');
-    c.className = 'c';
-    c.style.borderColor = `hsl(${colorHue}, 100%, 50%)`;
-    c.style.animation = `spin ${numRings * 0.5}s linear ${i * 0.09}s infinite`;
-    c.style.opacity = (i * 0.9).toFixed(5);
-    ringsContainer.appendChild(c);
-    colorHue = (colorHue + 5) % 30;
-  }
+const scriptureEl = document.getElementById('scripture');
+const header = document.getElementById('header');
+const scene = document.getElementById('scene');
+const progressBar = document.getElementById('progressBar');
+const progressContainer = document.getElementById('progressContainer');
 
-  // Sphere
-  const sphereContainer = document.getElementById('sphere');
-  const ringCount = 26;
-  const startHue = 60, endHue = 30;
-  for(let i=1;i<=ringCount;i++){
-    const ring = document.createElement('div');
-    ring.className=`ring${i}`;
-    const hue = startHue - ((startHue-endHue)*(i/ringCount));
-    const blur = 1+(i*1.2);
-    ring.style.transform=`rotateY(${i*2}deg) rotateX(${i*2}deg) rotateZ(${i*3}deg)`;
-    ring.style.boxShadow=`0 0 ${blur}px hsla(${hue},90%,55%,0.25), inset 0 0 ${blur}px hsla(${hue},90%,55%,0.3)`;
-    sphereContainer.appendChild(ring);
-  }
+const scriptureParts = {
+  in: "But in my distress I cried out to the Lord; yes, I prayed to my God for help.",
+  hold: "But in my distress I cried out to the Lord; yes, I prayed to my God for help.",
+  out: "He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6"
+};
 
-  const sphere = document.getElementById('sphere');
-  const header = document.getElementById('header');
-  const progressContainer = document.getElementById('progressContainer');
-  const progressBar = document.getElementById('progressBar');
-  const countdown = document.getElementById('countdown');
-  const scene = document.getElementById('scene');
+const PHASES = { IDLE:'idle', IN:'in', HOLD:'hold', OUT:'out' };
+let phase = PHASES.IDLE;
+const duration = 5000;
+let currentTyper = null;
 
-  let countdownTimer = null;
-  let startTime = null;
-  const totalTime = 3000;
+function typeText(text, duration) {
+  return new Promise(resolve => {
+    if (currentTyper) clearInterval(currentTyper);
+    scriptureEl.textContent = '';
+    scriptureEl.classList.remove('hidden');
+    const totalChars = text.length;
+    const interval = duration / totalChars;
+    let i = 0;
+    currentTyper = setInterval(()=>{
+      scriptureEl.textContent = text.slice(0, i++);
+      if(i > totalChars) {
+        clearInterval(currentTyper);
+        currentTyper = null;
+        resolve();
+      }
+    }, interval);
+  });
+}
 
-  function startBreathing(){
-    sphere.style.opacity = 0.9;
-    scene.classList.add('expanded');
-    header.classList.add('show');
-    progressContainer.classList.add('show');
+function fadeOutScripture(delay = 0) {
+  setTimeout(() => {
+    scriptureEl.classList.add('hidden');
+  }, delay);
+}
 
-    let remaining = 3;
-    countdown.textContent = remaining;
-    progressBar.style.width = '0%';
-    startTime = performance.now();
+function animateProgress(startWidth, endWidth, time) {
+  const startTime = performance.now();
+  const step = now => {
+    const t = Math.min((now - startTime) / time, 1);
+    progressBar.style.width = `${startWidth + (endWidth - startWidth)*t}%`;
+    if(t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
-    function animate(){
-      const elapsed = performance.now() - startTime;
-      const progress = Math.min(elapsed/totalTime,1);
-      progressBar.style.width = `${progress*100}%`;
-      if(progress<1) requestAnimationFrame(animate);
-    }
-    requestAnimationFrame(animate);
+async function breatheIn(){
+  phase = PHASES.IN;
+  header.textContent = 'Breathe In';
+  header.classList.add('show');
+  progressContainer.classList.add('show');
+  scene.classList.add('expanded');
+  scriptureEl.classList.remove('hidden');
 
-    countdownTimer = setInterval(()=>{
-      remaining--;
-      countdown.textContent = remaining>0?remaining:0;
-      if(remaining<1) clearInterval(countdownTimer);
-    },1000);
-  }
+  animateProgress(0, 100, duration);
+  await typeText(scriptureParts.in, duration);
 
-  function stopBreathing(){
-    sphere.style.opacity = 0.5;
-    scene.classList.remove('expanded');
-    header.classList.remove('show');
-    progressContainer.classList.remove('show');
-    clearInterval(countdownTimer);
-    progressBar.style.width='0%';
-    countdown.textContent='3';
-  }
+  if(phase === PHASES.IN) holdPhase();
+}
 
-  document.addEventListener('mousedown',startBreathing);
-  document.addEventListener('mouseup',stopBreathing);
-  document.addEventListener('touchstart',startBreathing);
-  document.addEventListener('touchend',stopBreathing);
+function holdPhase(){
+  phase = PHASES.HOLD;
+  header.textContent = 'Hold';
+  // Instantly show full sentence (no typing)
+  scriptureEl.textContent = scriptureParts.hold;
+  animateProgress(100, 100, duration);
+  setTimeout(()=>{
+    if(phase === PHASES.HOLD) breatheOut();
+  }, duration);
+}
+
+async function breatheOut(){
+  phase = PHASES.OUT;
+  header.textContent = 'Breathe Out';
+  scene.classList.remove('expanded');
+  scene.classList.add('shrinking');
+
+  animateProgress(100, 0, duration);
+  await typeText(scriptureParts.out, duration);
+
+  // Let scripture stay a bit longer during OUT, then fade
+ 
+  setTimeout(resetToIdle, 1000);
+}
+
+function resetToIdle(){
+  phase = PHASES.IDLE;
+  header.classList.remove('show');
+  progressContainer.classList.remove('show');
+  progressBar.style.width = '0%';
+  scene.classList.remove('shrinking');
+  scene.classList.remove('expanded');
+  if (currentTyper) clearInterval(currentTyper);
+  fadeOutScripture(0);
+}
+
+// Events: press to breathe in, release to reset if still breathing in
+document.addEventListener('mousedown', ()=>{ if(phase===PHASES.IDLE) breatheIn(); });
+document.addEventListener('touchstart', ()=>{ if(phase===PHASES.IDLE) breatheIn(); });
+
+document.addEventListener('mouseup', ()=>{ if(phase===PHASES.IN) resetToIdle(); });
+document.addEventListener('touchend', ()=>{ if(phase===PHASES.IN) resetToIdle(); });
+
+// Rings
+const ringsContainer = document.getElementById('rings');
+for (let i=0;i<15;i++){
+  const c = document.createElement('div');
+  c.className = 'c';
+  c.style.borderColor = `hsl(${20+i*2},100%,50%)`;
+  c.style.animation = `spin ${15*0.5}s linear ${i*0.1}s infinite`;
+  ringsContainer.appendChild(c);
+}
+const sphereContainer = document.getElementById('sphere');
+for(let i=1;i<=26;i++){
+  const ring=document.createElement('div');
+  ring.className=`ring${i}`;
+  const hue=60-((60-30)*(i/26));
+  const blur=1+(i*1.2);
+  ring.style.transform=`rotateY(${i*2}deg) rotateX(${i*2}deg) rotateZ(${i*3}deg)`;
+  ring.style.boxShadow=`0 0 ${blur}px hsla(${hue},90%,55%,0.25), inset 0 0 ${blur}px hsla(${hue},90%,55%,0.3)`;
+  sphereContainer.appendChild(ring);
+}
 </script>
-
 </body>
 </html>

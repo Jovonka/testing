@@ -1,191 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Page 2 – Trace Particles</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trace to Reveal Scripture</title>
 <style>
-  * {
-    box-sizing: border-box;
+  body {
     margin: 0;
-    padding: 0;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  html, body {
-    width: 100%;
-    height: 100%;
-    font-family: "Georgia", serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgb(248, 224, 255);
     overflow: hidden;
+    font-family: Georgia, serif;
+    background: rgb(248, 224, 255);
   }
-
-  /* Hamburger */
-  .hamburger {
+  #verseContainer {
     position: absolute;
-    top: 2vh;
-    left: 2vw;
-    width: 35px;
-    height: 30px;
-    cursor: pointer;
-    z-index: 999;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .hamburger div {
-    height: 4px;
-    background: #a64b00;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-  .hamburger.open div:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 6px);
-  }
-  .hamburger.open div:nth-child(2) { opacity: 0; }
-  .hamburger.open div:nth-child(3) {
-    transform: rotate(-45deg) translate(6px, -6px);
-  }
-
-  /* Side Menu */
-  .side-menu {
-    position: fixed;
-    top: 0;
-    left: -250px;
-    width: 220px;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    backdrop-filter: blur(6px);
-    transition: left 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    padding-top: 60px;
-    z-index: 998;
-  }
-  .side-menu.open { left: 0; }
-  .side-menu a {
-    text-decoration: none;
-    color: #a64b00;
-    font-size: 1.2rem;
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    transition: background 0.2s ease;
-  }
-  .side-menu a:hover { background: rgba(255, 204, 103, 0.3); }
-
-  /* Verse Container */
-  .verse-container {
-    position: relative;
     width: 90%;
     max-width: 600px;
     text-align: center;
-    padding: 30px;
-    background: rgba(255,255,255,0.3);
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
-  .verse {
-    position: relative;
     font-size: 1.2rem;
     color: #4b2800;
-    line-height: 1.6;
+    padding: 20px;
     z-index: 1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none; /* allow canvas interactions */
   }
-  .verse.revealed {
-    animation: glow 2s ease-out forwards;
-  }
-  @keyframes glow {
-    0% { text-shadow: none; }
-    50% { text-shadow: 0 0 10px #ffd9a6; }
-    100% { text-shadow: none; }
-  }
-
-  /* Particles */
-  .particle {
+  canvas {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    background: radial-gradient(circle, #d8b08c 20%, #a64b00 90%);
-    border-radius: 50%;
-    opacity: 0.95;
-    pointer-events: auto;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    mix-blend-mode: multiply;
-  }
-  .particle.fade {
-    opacity: 0;
-    transform: scale(0.2);
-    pointer-events: none;
+    top: 0;
+    left: 0;
+    z-index: 2; /* particles above text */
   }
 </style>
 </head>
 <body>
-<!-- Hamburger -->
-<div class="hamburger" id="hamburger">
-  <div></div>
-  <div></div>
-  <div></div>
+
+<div id="verseContainer">
+  But in my distress I cried out to the Lord; yes, I prayed to my God for help.<br>
+  He heard me from his sanctuary; my cry to him reached his ears.<br>
+  <strong>Psalm 18:6</strong>
 </div>
 
-<nav class="side-menu" id="sideMenu">
-  <a href="index.html">Page 1</a>
-  <a href="page2.html">Page 2</a>
-  <a href="page3.html">Page 3</a>
-  <a href="page4.html">Page 4</a>
-</nav>
-
-<!-- Verse Area -->
-<div class="verse-container" id="verseContainer">
-  <div class="verse" id="verse">
-    But in my distress I cried out to the Lord; yes, I prayed to my God for help.<br>
-    He heard me from his sanctuary; my cry to him reached his ears.<br>
-    <strong>Psalm 18:6</strong>
-  </div>
-</div>
+<canvas id="c"></canvas>
 
 <script>
-/* Hamburger */
-const hamburger = document.getElementById('hamburger');
-const sideMenu = document.getElementById('sideMenu');
-hamburger.addEventListener('click', ()=>{
-  hamburger.classList.toggle('open');
-  sideMenu.classList.toggle('open');
-});
+(function(w) {
 
-/* Particle Cover */
-const verseContainer = document.getElementById('verseContainer');
-const verse = document.getElementById('verse');
-let totalParticles = 120;
-let clearedParticles = 0;
+    var canvas, ctx;
+    var mouse = { x: 0, y: 0, px: 0, py: 0, down: false };
 
-for (let i = 0; i < totalParticles; i++) {
-  const p = document.createElement('div');
-  p.classList.add('particle');
-  const size = Math.random() * 10 + 10;
-  p.style.width = p.style.height = size + 'px';
-  p.style.left = Math.random() * 100 + '%';
-  p.style.top = Math.random() * 100 + '%';
-  verseContainer.appendChild(p);
+    var canvas_width = window.innerWidth;
+    var canvas_height = window.innerHeight;
+    
+    var resolution = 10;
+    var pen_size = 40;
+    var num_cols = Math.ceil(canvas_width / resolution);
+    var num_rows = Math.ceil(canvas_height / resolution);
+    var speck_count = 3000;
+    
+    var vec_cells = [];
+    var particles = [];
 
-  // Clear when touched or hovered
-  const clearParticle = () => {
-    if (!p.classList.contains('fade')) {
-      p.classList.add('fade');
-      clearedParticles++;
-      if (clearedParticles === totalParticles) {
-        verse.classList.add('revealed');
-      }
+    function init() {
+        canvas = document.getElementById("c");
+        ctx = canvas.getContext("2d");
+        canvas.width = canvas_width;
+        canvas.height = canvas_height;
+
+        // create particles
+        for (let i = 0; i < speck_count; i++) {
+            particles.push(new particle(Math.random() * canvas_width, Math.random() * canvas_height));
+        }
+
+        // create grid cells
+        for (let col = 0; col < num_cols; col++) {
+            vec_cells[col] = [];
+            for (let row = 0; row < num_rows; row++) {
+                var cell_data = new cell(col * resolution, row * resolution, resolution)
+                vec_cells[col][row] = cell_data;
+                vec_cells[col][row].col = col;
+                vec_cells[col][row].row = row;
+            }
+        }
+
+        // set neighbors
+        for (let col = 0; col < num_cols; col++) {
+            for (let row = 0; row < num_rows; row++) {
+                let cell_data = vec_cells[col][row];
+                let row_up = (row - 1 >= 0) ? row - 1 : num_rows - 1;
+                let col_left = (col - 1 >= 0) ? col - 1 : num_cols - 1;
+                let col_right = (col + 1 < num_cols) ? col + 1 : 0;
+                let up = vec_cells[col][row_up];
+                let left = vec_cells[col_left][row];
+                let up_left = vec_cells[col_left][row_up];
+                let up_right = vec_cells[col_right][row_up];
+                cell_data.up = up; cell_data.left = left; cell_data.up_left = up_left; cell_data.up_right = up_right;
+                up.down = cell_data; left.right = cell_data; up_left.down_right = cell_data; up_right.down_left = cell_data;
+            }
+        }
+
+        // events
+        w.addEventListener("mousedown", ()=>mouse.down = true);
+        w.addEventListener("mouseup", ()=>mouse.down = false);
+        w.addEventListener("mousemove", mouse_move_handler);
+        w.addEventListener("touchstart", touch_start_handler);
+        w.addEventListener("touchmove", touch_move_handler);
+        w.addEventListener("touchend", ()=>mouse.down = false);
+
+        draw();
     }
-  };
-  p.addEventListener('mouseover', clearParticle);
-  p.addEventListener('touchstart', clearParticle);
-}
+
+    function mouse_move_handler(e) {
+        mouse.px = mouse.x; mouse.py = mouse.y;
+        mouse.x = e.clientX; mouse.y = e.clientY;
+    }
+
+    function touch_start_handler(e) {
+        let rect = canvas.getBoundingClientRect();
+        mouse.x = mouse.px = e.touches[0].clientX - rect.left;
+        mouse.y = mouse.py = e.touches[0].clientY - rect.top;
+        mouse.down = true;
+    }
+    function touch_move_handler(e) {
+        let rect = canvas.getBoundingClientRect();
+        mouse.px = mouse.x; mouse.py = mouse.y;
+        mouse.x = e.touches[0].clientX - rect.left;
+        mouse.y = e.touches[0].clientY - rect.top;
+    }
+
+    function cell(x, y, res) {
+        this.x = x; this.y = y; this.r = res;
+        this.col = 0; this.row = 0;
+        this.xv = 0; this.yv = 0;
+        this.pressure = 0;
+    }
+
+    function particle(x, y) {
+        this.x = this.px = x;
+        this.y = this.py = y;
+        this.xv = this.yv = 0;
+    }
+
+    function change_cell_velocity(cell_data, mvelX, mvelY, pen_size) {
+        let dx = cell_data.x - mouse.x;
+        let dy = cell_data.y - mouse.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < pen_size) {
+            if (dist < 4) dist = pen_size;
+            let power = pen_size / dist;
+            cell_data.xv += mvelX * power;
+            cell_data.yv += mvelY * power;
+        }
+    }
+
+    function update_pressure(cell_data) {
+        let pressure_x = (cell_data.up_left.xv*0.5 + cell_data.left.xv + cell_data.down_left.xv*0.5 - cell_data.up_right.xv*0.5 - cell_data.right.xv - cell_data.down_right.xv*0.5);
+        let pressure_y = (cell_data.up_left.yv*0.5 + cell_data.up.yv + cell_data.up_right.yv*0.5 - cell_data.down_left.yv*0.5 - cell_data.down.yv - cell_data.down_right.yv*0.5);
+        cell_data.pressure = (pressure_x + pressure_y) * 0.25;
+    }
+
+    function update_velocity(cell_data) {
+        cell_data.xv += (cell_data.up_left.pressure*0.5 + cell_data.left.pressure + cell_data.down_left.pressure*0.5 - cell_data.up_right.pressure*0.5 - cell_data.right.pressure - cell_data.down_right.pressure*0.5)*0.25;
+        cell_data.yv += (cell_data.up_left.pressure*0.5 + cell_data.up.pressure + cell_data.up_right.pressure*0.5 - cell_data.down_left.pressure*0.5 - cell_data.down.pressure - cell_data.down_right.pressure*0.5)*0.25;
+        cell_data.xv *= 0.99;
+        cell_data.yv *= 0.99;
+    }
+
+    function update_particle() {
+        for (let i=0;i<particles.length;i++){
+            let p=particles[i];
+            if(p.x>=0 && p.x<canvas_width && p.y>=0 && p.y<canvas_height){
+                let col = Math.floor(p.x/resolution);
+                let row = Math.floor(p.y/resolution);
+                let cell_data = vec_cells[col][row];
+                let ax = (p.x % resolution)/resolution;
+                let ay = (p.y % resolution)/resolution;
+                p.xv += (1-ax)*cell_data.xv*0.05 + ax*cell_data.right.xv*0.05;
+                p.yv += (1-ay)*cell_data.yv*0.05 + ay*cell_data.down.yv*0.05;
+                p.x += p.xv;
+                p.y += p.yv;
+                p.xv *= 0.5;
+                p.yv *= 0.5;
+                p.px = p.x;
+                p.py = p.y;
+            } else {
+                p.x = p.px = Math.random()*canvas_width;
+                p.y = p.py = Math.random()*canvas_height;
+                p.xv=0; p.yv=0;
+            }
+        }
+    }
+
+    function draw() {
+        let mouse_xv = mouse.x - mouse.px;
+        let mouse_yv = mouse.y - mouse.py;
+
+        for (let i=0;i<vec_cells.length;i++){
+            for (let j=0;j<vec_cells[i].length;j++){
+                let cell_data = vec_cells[i][j];
+                if(mouse.down) change_cell_velocity(cell_data, mouse_xv, mouse_yv, pen_size);
+                update_pressure(cell_data);
+            }
+        }
+
+        ctx.clearRect(0,0,canvas_width,canvas_height);
+        ctx.strokeStyle = "#8B4513";
+        update_particle();
+        for (let i=0;i<vec_cells.length;i++){
+            for (let j=0;j<vec_cells[i].length;j++){
+                update_velocity(vec_cells[i][j]);
+            }
+        }
+
+        mouse.px = mouse.x;
+        mouse.py = mouse.y;
+        requestAnimationFrame(draw);
+    }
+
+    w.Fluid = { initialize: init }
+
+}(window));
+
+window.requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
+Fluid.initialize();
 </script>
+
 </body>
 </html>

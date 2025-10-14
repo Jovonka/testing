@@ -5,15 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <title>Page 3</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
   html, body {
     width: 100%;
     height: 100%;
     font-family: "Georgia", serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background-color: rgb(219, 248, 255);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+    padding-top: 60px;
   }
   .hamburger {
     position: absolute;
@@ -62,10 +65,66 @@
     text-align: center;
     color: #a64b00;
     font-size: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Slider */
+  .slider-container {
+    position: absolute;
+    bottom: 50px;
+    width: 80%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .emotion-labels {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    color: #a64b00;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    background: #fff3e0;
+    height: 10px;
+    border-radius: 5px;
+    border: 2px solid #a64b00;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 30px;
+    height: 30px;
+    background: #a64b00;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  input[type=range]::-webkit-slider-thumb:active {
+    transform: scale(1.2);
+  }
+
+  .scripture-box {
+    margin-top: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border: 2px solid #a64b00;
+    border-radius: 15px;
+    max-width: 500px;
+    text-align: center;
+    display: none;
   }
 </style>
 </head>
 <body>
+
 <div class="hamburger" id="hamburger">
   <div></div>
   <div></div>
@@ -80,8 +139,23 @@
 </nav>
 
 <div class="content">
-  <h1>Page 3</h1>
-  <p>This is a placeholder for future content.</p>
+  <h1>Emotion Selection</h1>
+  <p>Select your current feeling:</p>
+
+  <div class="scripture-box" id="scriptureBox">
+    <p>But in my distress I cried out to the Lord; yes, I prayed to my God for help.<br>
+    He heard me from his sanctuary; my cry to him reached his ears. <strong>Psalm 18:6</strong></p>
+  </div>
+</div>
+
+<div class="slider-container">
+  <div class="emotion-labels">
+    <span>Fear</span>
+    <span>Grief</span>
+    <span>Anger</span>
+    <span>Numbness</span>
+  </div>
+  <input type="range" id="emotionSlider" min="0" max="3" step="1">
 </div>
 
 <script>
@@ -90,6 +164,13 @@ const sideMenu = document.getElementById('sideMenu');
 hamburger.addEventListener('click', ()=>{
   hamburger.classList.toggle('open');
   sideMenu.classList.toggle('open');
+});
+
+// Slider logic
+const slider = document.getElementById('emotionSlider');
+const scriptureBox = document.getElementById('scriptureBox');
+slider.addEventListener('input', ()=>{
+  scriptureBox.style.display = 'block';
 });
 </script>
 </body>

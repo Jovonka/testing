@@ -42,8 +42,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transform: scale(1);
-    transition: transform 0.6s cubic-bezier(0.25,1,0.3,1);
+
+  
   }
   .scene.expanded { transform: scale(1.4); }
 
@@ -76,12 +76,16 @@
     margin:auto;
     width: 50vmin;
     height: 50vmin;
-    opacity: 0;
-    transform-style: preserve-3d;
-    transition: opacity 0.8s ease;
+    opacity: 0.2; /* start low */
+   
+    transition: opacity 0.6s ease;
     pointer-events: none;
+
+    /* Keep the animation always running */
+    animation: spinSphere 20s linear infinite;
   }
-  .sphere.visible { opacity:1; }
+  .sphere.visible { opacity: 1; }
+
   [class^="ring"] {
     position: absolute;
     top:0; left:0; right:0; bottom:0;
@@ -90,6 +94,11 @@
     height:50vmin;
     border-radius: 50%;
     overflow:hidden;
+  }
+
+  @keyframes spinSphere {
+    from { transform: rotateZ(0deg) rotateX(0deg) rotateY(0deg); }
+    to { transform: rotateZ(360deg) rotateX(0deg) rotateY(0deg); }
   }
 
   /* Progress */
@@ -144,95 +153,84 @@
 </div>
 
 <script>
-const ringsContainer = document.getElementById('rings');
-const numRings = 45;
-let colorHue = 330;
-for(let i=1;i<=numRings;i++){
-  const c = document.createElement('div');
-  c.className='c';
-  c.style.borderColor=`hsl(${colorHue},100%,50%)`;
-  c.style.opacity=(i*0.006).toFixed(3);
-  ringsContainer.appendChild(c);
-  colorHue=(colorHue+2)%360;
-}
-
-const sphereContainer = document.getElementById('sphere');
-const ringCount = 36;
-const startHue=60,endHue=30;
-for(let i=1;i<=ringCount;i++){
-  const ring = document.createElement('div');
-  ring.className=`ring${i}`;
-  const hue = startHue - ((startHue-endHue)*(i/ringCount));
-  const blur = 2+(i*2.2);
-  ring.style.transform=`rotateY(${i*2}deg) rotateX(${i*2}deg) rotateZ(${i*3}deg)`;
-  ring.style.boxShadow=`0 0 ${blur}px hsla(${hue},90%,55%,0.25), inset 0 0 ${blur}px hsla(${hue},90%,55%,0.3)`;
-  sphereContainer.appendChild(ring);
-}
-
-const sphere = document.getElementById('sphere');
-const header = document.getElementById('header');
-const progressContainer = document.getElementById('progressContainer');
-const progressBar = document.getElementById('progressBar');
-const countdown = document.getElementById('countdown');
-const scene = document.getElementById('scene');
-
-let countdownTimer=null;
-let startTime=null;
-const totalTime=3000;
-
-function restartSphereAnimation(){
-  sphere.style.animation='none';
-  void sphere.offsetWidth;
-  sphere.style.animation='spinSphere 20s linear infinite';
-}
-
-function startBreathing(){
-  restartSphereAnimation();
-  sphere.classList.add('visible');
-  scene.classList.add('expanded');
-  header.classList.add('show');
-  progressContainer.classList.add('show');
-
-  let remaining=3;
-  countdown.textContent=remaining;
-  progressBar.style.width='0%';
-  startTime=performance.now();
-
-  function animate(){
-    const elapsed = performance.now()-startTime;
-    const progress=Math.min(elapsed/totalTime,1);
-    progressBar.style.width=`${progress*100}%`;
-    if(progress<1) requestAnimationFrame(animate);
+  // Generate ripple rings (ALWAYS VISIBLE)
+  const ringsContainer = document.getElementById('rings');
+  const numRings = 45;
+  let colorHue = 330;
+  for (let i = 1; i <= numRings; i++) {
+    const c = document.createElement('div');
+    c.className = 'c';
+    c.style.borderColor = `hsl(${colorHue}, 100%, 50%)`;
+    c.style.animation = `spin ${numRings * 0.16}s linear ${i * 0.04}s infinite`;
+    c.style.opacity = (i * 0.006).toFixed(3);
+    ringsContainer.appendChild(c);
+    colorHue = (colorHue + 2) % 360;
   }
-  requestAnimationFrame(animate);
 
-  countdownTimer=setInterval(()=>{
-    remaining--;
-    countdown.textContent=remaining>0?remaining:0;
-    if(remaining<1) clearInterval(countdownTimer);
-  },1000);
-}
+  const sphereContainer = document.getElementById('sphere');
+  const ringCount = 36;
+  const startHue = 60, endHue = 30;
+  for(let i=1;i<=ringCount;i++){
+    const ring = document.createElement('div');
+    ring.className=`ring${i}`;
+    const hue = startHue - ((startHue-endHue)*(i/ringCount));
+    const blur = 2+(i*2.2);
+    ring.style.transform=`rotateY(${i*2}deg) rotateX(${i*2}deg) rotateZ(${i*3}deg)`;
+    ring.style.boxShadow=`0 0 ${blur}px hsla(${hue},90%,55%,0.25), inset 0 0 ${blur}px hsla(${hue},90%,55%,0.3)`;
+    sphereContainer.appendChild(ring);
+  }
 
-function stopBreathing(){
-  sphere.classList.remove('visible');
-  scene.classList.remove('expanded');
-  header.classList.remove('show');
-  progressContainer.classList.remove('show');
-  clearInterval(countdownTimer);
-  progressBar.style.width='0%';
-  countdown.textContent='3';
-}
+  const sphere = document.getElementById('sphere');
+  const header = document.getElementById('header');
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById('progressBar');
+  const countdown = document.getElementById('countdown');
+  const scene = document.getElementById('scene');
 
-document.addEventListener('mousedown',startBreathing);
-document.addEventListener('mouseup',stopBreathing);
-document.addEventListener('touchstart',startBreathing);
-document.addEventListener('touchend',stopBreathing);
+  let countdownTimer = null;
+  let startTime = null;
+  const totalTime = 3000;
 
-// Add smooth sphere spin animation
-const style = document.createElement('style');
-style.innerHTML=`@keyframes spinSphere{from{transform:rotateZ(0deg) rotateX(0deg) rotateY(0deg);}to{transform:rotateZ(360deg) rotateX(-360deg) rotateY(360deg);}}`;
-document.head.appendChild(style);
-sphere.style.animation='spinSphere 20s linear infinite';
+  function startBreathing(){
+    sphere.style.opacity = 1; // fade in
+    scene.classList.add('expanded');
+    header.classList.add('show');
+    progressContainer.classList.add('show');
+
+    let remaining = 3;
+    countdown.textContent = remaining;
+    progressBar.style.width = '0%';
+    startTime = performance.now();
+
+    function animate(){
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed/totalTime,1);
+      progressBar.style.width = `${progress*100}%`;
+      if(progress<1) requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+
+    countdownTimer = setInterval(()=>{
+      remaining--;
+      countdown.textContent = remaining>0?remaining:0;
+      if(remaining<1) clearInterval(countdownTimer);
+    },1000);
+  }
+
+  function stopBreathing(){
+    sphere.style.opacity = 0.2; // fade back to low opacity
+    scene.classList.remove('expanded');
+    header.classList.remove('show');
+    progressContainer.classList.remove('show');
+    clearInterval(countdownTimer);
+    progressBar.style.width='0%';
+    countdown.textContent='3';
+  }
+
+  document.addEventListener('mousedown',startBreathing);
+  document.addEventListener('mouseup',stopBreathing);
+  document.addEventListener('touchstart',startBreathing);
+  document.addEventListener('touchend',stopBreathing);
 </script>
 
 </body>

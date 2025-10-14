@@ -15,7 +15,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgb(255,254,245);
+    background-color: rgb(255, 244, 225);
 
     /* Disable selection/highlight */
     user-select: none;
@@ -76,7 +76,7 @@
     margin:auto;
     width: 50vmin;
     height: 50vmin;
-    opacity: 0.2; /* start low */
+    opacity: 0.5; /* start low */
    
     transition: opacity 0.6s ease;
     pointer-events: none;
@@ -84,7 +84,7 @@
     /* Keep the animation always running */
     animation: spinSphere 20s linear infinite;
   }
-  .sphere.visible { opacity: 1; }
+  .sphere.visible { opacity: 0.9; }
 
   [class^="ring"] {
     position: absolute;
@@ -104,7 +104,7 @@
   /* Progress */
   .progress-container {
     position: absolute;
-    bottom: 4vh;
+    top: 9vh;
     width: 60%;
     max-width: 400px;
     height: 4vh;
@@ -155,8 +155,8 @@
 <script>
   // Generate ripple rings (ALWAYS VISIBLE)
   const ringsContainer = document.getElementById('rings');
-  const numRings = 45;
-  let colorHue = 330;
+  const numRings = 65;
+  let colorHue = 300;
   for (let i = 1; i <= numRings; i++) {
     const c = document.createElement('div');
     c.className = 'c';
@@ -168,7 +168,7 @@
   }
 
   const sphereContainer = document.getElementById('sphere');
-  const ringCount = 36;
+  const ringCount = 26;
   const startHue = 60, endHue = 30;
   for(let i=1;i<=ringCount;i++){
     const ring = document.createElement('div');
@@ -192,7 +192,7 @@
   const totalTime = 3000;
 
   function startBreathing(){
-    sphere.style.opacity = 1; // fade in
+    sphere.style.opacity = 0.9; // fade in
     scene.classList.add('expanded');
     header.classList.add('show');
     progressContainer.classList.add('show');
@@ -218,7 +218,7 @@
   }
 
   function stopBreathing(){
-    sphere.style.opacity = 0.2; // fade back to low opacity
+    sphere.style.opacity = 0.5; // fade back to low opacity
     scene.classList.remove('expanded');
     header.classList.remove('show');
     progressContainer.classList.remove('show');

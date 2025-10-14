@@ -149,16 +149,16 @@
 <script>
   // Generate ripple rings (ALWAYS VISIBLE)
   const ringsContainer = document.getElementById('rings');
-  const numRings = 35;
-  let colorHue = 300;
+  const numRings = 15;
+  let colorHue = 20;
   for (let i = 1; i <= numRings; i++) {
     const c = document.createElement('div');
     c.className = 'c';
     c.style.borderColor = `hsl(${colorHue}, 100%, 50%)`;
-    c.style.animation = `spin ${numRings * 0.46}s linear ${i * 0.04}s infinite`;
-    c.style.opacity = (i * 0.006).toFixed(3);
+    c.style.animation = `spin ${numRings * 0.5}s linear ${i * 0.09}s infinite`;
+    c.style.opacity = (i * 0.9).toFixed(5);
     ringsContainer.appendChild(c);
-    colorHue = (colorHue + 2) % 360;
+    colorHue = (colorHue + 5) % 30;
   }
 
   // Sphere
@@ -169,7 +169,7 @@
     const ring = document.createElement('div');
     ring.className=`ring${i}`;
     const hue = startHue - ((startHue-endHue)*(i/ringCount));
-    const blur = 4+(i*4.2);
+    const blur = 1+(i*1.2);
     ring.style.transform=`rotateY(${i*2}deg) rotateX(${i*2}deg) rotateZ(${i*3}deg)`;
     ring.style.boxShadow=`0 0 ${blur}px hsla(${hue},90%,55%,0.25), inset 0 0 ${blur}px hsla(${hue},90%,55%,0.3)`;
     sphereContainer.appendChild(ring);

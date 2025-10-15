@@ -336,11 +336,35 @@ void main(void){
   renderMetaballs();
 
   const emotions = [
-    { name: "Fear", bg: "#3498db", color: "#fff", verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6" },
-    { name: "Grief", bg: "#9b59b6", color: "#fff", verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6" },
-    { name: "Anger", bg: "#e74c3c", color: "#fff", verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6" },
-    { name: "Numbness", bg: "#f39c12", color: "#fff", verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6" }
-  ];
+  { 
+    name: "Fear", 
+    bg: "rgba(52, 152, 219, 0.25)", // semi-transparent blue
+    color: "#fff", 
+    verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6",
+    glass: true
+  },
+  { 
+    name: "Grief", 
+    bg: "rgba(155, 89, 182, 0.25)", // semi-transparent purple
+    color: "#fff", 
+    verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6",
+    glass: true
+  },
+  { 
+    name: "Anger", 
+    bg: "rgba(231, 76, 60, 0.25)", // semi-transparent red
+    color: "#fff", 
+    verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6",
+    glass: true
+  },
+  { 
+    name: "Numbness", 
+    bg: "rgba(243, 156, 18, 0.25)", // semi-transparent orange
+    color: "#fff", 
+    verse:"But in my distress I cried out to the Lord; yes, I prayed to my God for help. He heard me from his sanctuary; my cry to him reached his ears. Psalm 18:6",
+    glass: true
+  }
+];
 
   let bubbles = [];
   function initBubbles() {
@@ -426,6 +450,7 @@ hamburger.addEventListener("click", () => {
   function animateBubbles(){ updateBubbles(); requestAnimationFrame(animateBubbles);}
   animateBubbles();
 });
+
 </script>
 </body>
 </html>

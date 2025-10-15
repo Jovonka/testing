@@ -3,20 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trace Slider Reveal</title>
+<title>Fish Path Scripture Reveal</title>
 <style>
-body, html {
+html, body {
   margin:0;
   padding:0;
   width:100%;
   height:100%;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  font-family: "Georgia", serif;
-  background: rgb(255, 255, 255);
   overflow:hidden;
+  font-family: "Georgia", serif;
+  background: radial-gradient(circle at center, #001a33, #000);
 }
+
 /* Hamburger */
 .hamburger {
   position:absolute; top:2vh; left:2vw; width:35px; height:30px; cursor:pointer;
@@ -55,18 +53,20 @@ canvas {
   left:50%;
   transform:translate(-50%,-50%);
   font-size:1.5rem;
-  color:#4b2800;
+  color:#fff8e1;
   text-align:center;
   opacity:0;
-  transition:opacity 1s ease;
+  transition:opacity 2s ease;
   width:80%;
   pointer-events:none;
+  text-shadow: 0 0 10px #a64b00;
 }
 .verse.visible { opacity:1; }
 </style>
 </head>
 <body>
 
+<!-- Hamburger -->
 <div class="hamburger" id="hamburger"><div></div><div></div><div></div></div>
 <nav class="side-menu" id="sideMenu">
   <a href="index.html">Page 1</a>
@@ -75,7 +75,10 @@ canvas {
   <a href="page4.html">Page 4</a>
 </nav>
 
+<!-- Canvas -->
 <canvas id="canvas"></canvas>
+
+<!-- Verse -->
 <div class="verse" id="verse">
   But in my distress I cried out to the Lord; yes, I prayed to my God for help.<br>
   He heard me from his sanctuary; my cry to him reached his ears.<br>
@@ -83,104 +86,245 @@ canvas {
 </div>
 
 <script>
-/* Hamburger */
-const hamburger = document.getElementById('hamburger');
-const sideMenu = document.getElementById('sideMenu');
-hamburger.addEventListener('click', ()=>{
-  hamburger.classList.toggle('open');
-  sideMenu.classList.toggle('open');
-});
-
-/* Trace Slider */
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-
-let dragging = false;
-let progress = 0;
-let pathPoints = [];
-
-function generatePath() {
-  pathPoints = [];
-  const w = canvas.width;
-  const h = canvas.height;
-  const numPoints = 200;
-  for(let i=0;i<=numPoints;i++){
-    const t = i/numPoints;
-    const x = t * w;
-    // Keep path always centered vertically
-    const y = h/2 + Math.sin(t*10)*h/8 + Math.sin(t*5)*h/16;
-    pathPoints.push({x,y});
-  }
-}
-
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  if(progress<1){
-    ctx.beginPath();
-    ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-    for(let i=1;i<pathPoints.length;i++){
-      ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
-    }
-    ctx.strokeStyle = '#ccc';
-    ctx.lineWidth = 70;
-    ctx.stroke();
-
-    const maxIdx = Math.floor(progress*(pathPoints.length-1));
-    if(maxIdx>0){
-      ctx.beginPath();
-      ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-      for(let i=1;i<=maxIdx;i++){
-        ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
-      }
-      ctx.strokeStyle = '#a64b00';
-      ctx.lineWidth = 70;
-      ctx.stroke();
-    }
-  }
-
-  requestAnimationFrame(draw);
-}
-
-function distance(p1,p2){
-  return Math.hypot(p1.x-p2.x, p1.y-p2.y);
-}
-
-function updateProgress(x,y){
-  for(let i=0;i<pathPoints.length;i++){
-    if(distance({x,y}, pathPoints[i]) < 30){
-      progress = Math.max(progress, i/(pathPoints.length-1));
-      if(progress >= 1){
-        document.getElementById('verse').classList.add('visible');
-      }
-    }
-  }
-}
-
-// Events
-canvas.addEventListener('mousedown',()=>dragging=true);
-canvas.addEventListener('mouseup',()=>dragging=false);
-canvas.addEventListener('mouseleave',()=>dragging=false);
-canvas.addEventListener('mousemove', e=>{ if(dragging) updateProgress(e.clientX,e.clientY); });
-canvas.addEventListener('touchstart',()=>dragging=true);
-canvas.addEventListener('touchend',()=>dragging=false);
-canvas.addEventListener('touchmove', e=>{
-  if(dragging){
-    const t = e.touches[0];
-    updateProgress(t.clientX, t.clientY);
-  }
-});
-
-// Resize
-function resizeCanvas(){
+  /* ===== Hamburger ===== */
+  const hamburger = document.getElementById('hamburger');
+  const sideMenu = document.getElementById('sideMenu');
+  hamburger.addEventListener('click', ()=>{
+    hamburger.classList.toggle('open');
+    sideMenu.classList.toggle('open');
+  });
+  
+  /* ===== Canvas Setup ===== */
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  generatePath();
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-draw();
-</script>
-
+  
+  /* ===== Path Setup FIRST (so we know where to start fish) ===== */
+  let pathPoints=[];
+  let progress=0;
+  let pathOpacity=1;
+  let fadeStarted=false;
+  let tracingStarted=false;
+  const verseEl=document.getElementById('verse');
+  
+  function generatePath(){
+    pathPoints=[];
+    const w=canvas.width, h=canvas.height;
+    const numPoints=200;
+    for(let i=0;i<=numPoints;i++){
+      const t=i/numPoints;
+      const x=t*w;
+      const y=h/2+Math.sin(t*10)*h/8+Math.sin(t*5)*h/16;
+      pathPoints.push({x,y});
+    }
+  }
+  
+  /* ===== Fish Setup ===== */
+  // 🟡 Start fish at path start (instead of center)
+  const fish = { x: 0, y: 0, tails: [] };
+  const tailLength = 20;
+  const tailSpacing = 10;
+  for(let i=0;i<tailLength;i++) fish.tails.push({x:fish.x,y:fish.y});
+  
+  function moveFishTo(x, y) { fish.x = x; fish.y = y; }
+  function updateTail() {
+    for (let i = 0; i < fish.tails.length; i++) {
+      const target = i === 0 ? fish : fish.tails[i-1];
+      const t = fish.tails[i];
+      const dx = target.x - t.x;
+      const dy = target.y - t.y;
+      const angle = Math.atan2(dy, dx);
+      t.x = target.x - Math.cos(angle)*tailSpacing;
+      t.y = target.y - Math.sin(angle)*tailSpacing;
+    }
+  }
+  function drawFish() {
+    fish.tails.forEach((t,i)=>{
+      ctx.beginPath();
+      ctx.arc(t.x,t.y,Math.max(1,4 - i/5),0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.fill();
+    });
+    ctx.beginPath();
+    ctx.arc(fish.x, fish.y, 10, 0, Math.PI*2);
+    ctx.fillStyle='#fff';
+    ctx.fill();
+  }
+  
+  /* ===== Particles ===== */
+  let particles = [];
+  let particleOpacity = 1;
+  const spacing = 20;
+  const baseRadius = 2;
+  const influenceRadius = 100;
+  
+  class Particle {
+    constructor(x,y){
+      this.x=x;this.y=y;
+      this.r=baseRadius+Math.random()*1.5;
+      this.offset=Math.random()*1000;
+    }
+    update(time){
+      const driftX=Math.sin(time*0.001+this.offset)*0.3;
+      const driftY=Math.cos(time*0.001+this.offset)*0.3;
+  
+      const dx=fish.x-this.x;
+      const dy=fish.y-this.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<influenceRadius && isDragging){
+        const force=(influenceRadius - dist)/influenceRadius;
+        this.x -= dx*force*0.25;
+        this.y -= dy*force*0.25;
+      }
+  
+      this.x += driftX;
+      this.y += driftY;
+  
+      if(particleOpacity>0){
+        ctx.globalAlpha=particleOpacity;
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+        ctx.fillStyle='rgba(180,220,255,0.5)';
+        ctx.fill();
+        ctx.globalAlpha=1;
+      }
+    }
+  }
+  function initParticles(){
+    particles=[];
+    for(let x=0;x<canvas.width;x+=spacing){
+      for(let y=0;y<canvas.height;y+=spacing){
+        particles.push(new Particle(x,y));
+      }
+    }
+  }
+  
+  /* ===== Path Drawing ===== */
+  function drawPath(){
+    if(pathOpacity<=0)return;
+  
+    ctx.globalAlpha=pathOpacity*0.2;
+    ctx.beginPath();
+    ctx.moveTo(pathPoints[0].x,pathPoints[0].y);
+    for(let i=1;i<pathPoints.length;i++) ctx.lineTo(pathPoints[i].x,pathPoints[i].y);
+    ctx.strokeStyle='#ffffff';
+    ctx.lineWidth=70;
+    ctx.stroke();
+  
+    const maxIdx=Math.floor(progress*(pathPoints.length-1));
+    if(maxIdx>0){
+      ctx.globalAlpha=pathOpacity;
+      ctx.beginPath();
+      ctx.moveTo(pathPoints[0].x,pathPoints[0].y);
+      for(let i=1;i<=maxIdx;i++) ctx.lineTo(pathPoints[i].x,pathPoints[i].y);
+      ctx.strokeStyle='#a64b00';
+      ctx.lineWidth=70;
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+  
+  function distance(p1,p2){return Math.hypot(p1.x-p2.x,p1.y-p2.y);}
+  
+  function updateProgress(x,y){
+    const startDist = distance({x,y}, pathPoints[0]);
+    if(!tracingStarted){
+      if(startDist < 30){
+        tracingStarted = true;
+      } else {
+        return;
+      }
+    }
+  
+    for(let i=0;i<pathPoints.length;i++){
+      if(distance({x,y},pathPoints[i])<30){
+        progress=Math.max(progress,i/(pathPoints.length-1));
+        if(progress>=1 && !fadeStarted){
+          startPathFade();
+        }
+      }
+    }
+  }
+  
+  function startPathFade(){
+    fadeStarted=true;
+    const fadeInterval=setInterval(()=>{
+      pathOpacity-=0.02;
+      if(pathOpacity<=0){
+        clearInterval(fadeInterval);
+        startParticleFade();
+      }
+    },50);
+  }
+  
+  function startParticleFade(){
+    const fadeInterval=setInterval(()=>{
+      particleOpacity-=0.02;
+      if(particleOpacity<=0){
+        clearInterval(fadeInterval);
+        verseEl.classList.add('visible');
+      }
+    },50);
+  }
+  
+  /* ===== Events ===== */
+  let isDragging = false;
+  canvas.addEventListener('mousedown',e=>{
+    isDragging=true;
+    moveFishTo(e.clientX,e.clientY);
+  });
+  canvas.addEventListener('mousemove',e=>{
+    if(isDragging){
+      moveFishTo(e.clientX,e.clientY);
+      updateProgress(e.clientX,e.clientY);
+    }
+  });
+  canvas.addEventListener('mouseup',()=>isDragging=false);
+  canvas.addEventListener('mouseleave',()=>isDragging=false);
+  
+  canvas.addEventListener('touchstart',e=>{
+    isDragging=true;
+    const t=e.touches[0];
+    moveFishTo(t.clientX,t.clientY);
+  });
+  canvas.addEventListener('touchmove',e=>{
+    if(isDragging){
+      const t=e.touches[0];
+      moveFishTo(t.clientX,t.clientY);
+      updateProgress(t.clientX,t.clientY);
+    }
+  });
+  canvas.addEventListener('touchend',()=>isDragging=false);
+  
+  /* ===== Resize & Animate ===== */
+  function resizeCanvas(){
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+    generatePath();
+    // 🟡 Set fish starting position to path start
+    fish.x = pathPoints[0].x;
+    fish.y = pathPoints[0].y;
+    fish.tails.forEach(t => { t.x = fish.x; t.y = fish.y; });
+    initParticles();
+  }
+  window.addEventListener('resize',resizeCanvas);
+  resizeCanvas();
+  
+  function animate(time){
+    ctx.fillStyle='rgba(0,20,40,0.5)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  
+    drawPath();
+    particles.forEach(p=>p.update(time));
+  
+    updateTail();
+    drawFish();
+  
+    requestAnimationFrame(animate);
+  }
+  animate(0);
+  </script>
+  
 </body>
 </html>

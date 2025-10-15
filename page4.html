@@ -1,127 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Page 4</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Zen Fractal Trees with Clouds</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-  html, body {
-    width: 100%;
-    height: 100%;
-    font-family: "Georgia", serif;
-    background-color: rgb(200, 255, 183);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    position: relative;
-  }
+  * { box-sizing: border-box; margin:0; padding:0; user-select:none; -webkit-tap-highlight-color: transparent; }
+  html, body { width:100%; height:100%; overflow:hidden; font-family:"Georgia", serif; background-color:#f4f1ee; }
 
-  .hamburger {
-    position: absolute;
-    top: 2vh;
-    left: 2vw;
-    width: 35px;
-    height: 30px;
-    cursor: pointer;
-    z-index: 999;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .hamburger div { height: 4px; background: #a64b00; border-radius: 2px; transition: all 0.3s ease; }
-  .hamburger.open div:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
-  .hamburger.open div:nth-child(2) { opacity: 0; }
-  .hamburger.open div:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
+  /* Hamburger */
+  .hamburger { position:absolute; top:2vh; left:2vw; width:35px; height:30px; cursor:pointer; z-index:999; display:flex; flex-direction:column; justify-content:space-between; }
+  .hamburger div { height:4px; background:#6b4f3f; border-radius:2px; transition:all 0.3s ease;}
+  .hamburger.open div:nth-child(1){ transform: rotate(45deg) translate(5px,6px);}
+  .hamburger.open div:nth-child(2){ opacity:0;}
+  .hamburger.open div:nth-child(3){ transform: rotate(-45deg) translate(6px,-6px);}
+  .side-menu { position:fixed; top:0; left:-250px; width:220px; height:100%; background: rgba(255,255,255,0.9); box-shadow:2px 0 10px rgba(0,0,0,0.1); backdrop-filter: blur(6px); transition:left 0.3s ease; display:flex; flex-direction:column; padding-top:60px; z-index:998;}
+  .side-menu.open { left:0; }
+  .side-menu a { text-decoration:none; color:#6b4f3f; font-size:1.2rem; padding:15px 20px; border-bottom:1px solid rgba(0,0,0,0.05);}
+  .side-menu a:hover{ background: rgba(180,160,140,0.3); }
 
-  .side-menu {
-    position: fixed;
-    top: 0;
-    left: -250px;
-    width: 220px;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    backdrop-filter: blur(6px);
-    transition: left 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    padding-top: 60px;
-    z-index: 998;
-  }
-  .side-menu.open { left: 0; }
-  .side-menu a {
-    text-decoration: none;
-    color: #a64b00;
-    font-size: 1.2rem;
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    transition: background 0.2s ease;
-  }
-  .side-menu a:hover { background: rgba(255, 204, 103, 0.3); }
+/* Scripture inside ground */
+#scripture {
+  position: absolute;
+  top: 92%;
+  left: 50%;
+  transform: translateX(-50%); /* centers horizontally */
+  width: 90%;                  /* wider box but with margin on sides */
+  height: calc(16.666%);       /* match ground height (height/6) */
+  text-align: center;
+  font-size: 2.5vw;
+  line-height: 1.2;
+  color: #789578;           
+  pointer-events: none;
+  opacity: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 1em;
+  background: rgba(255, 255, 255, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;            /* remove rounding if you want flush with ground */
+  backdrop-filter: blur(12px);
+}
 
-  .content {
-    text-align: center;
-    color: #a64b00;
-    font-size: 1.5rem;
-    margin-top: 60px;
-  }
+@media (max-width: 980px) { #scripture { font-size: 2.5vw; } }
+@media (max-width: 640px) { #scripture { font-size: 2.5vw; } }
 
-  /* Planting area */
-  .ground {
-    width: 300px;
-    height: 100px;
-    background: #7cfc00;
-    border-radius: 10px;
-    position: relative;
-    margin-top: 50px;
-  }
-
-  .seed {
-    width: 30px;
-    height: 30px;
-    background: brown;
-    border-radius: 50%;
-    position: absolute;
-    top: 20px;
-    left: calc(50% - 15px);
-    cursor: grab;
-  }
-
-  .plant {
-    width: 0;
-    height: 0;
-    background: green;
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 10px;
-    display: none;
-    transition: height 2s ease;
-  }
-
-  .scripture-box {
-    margin-top: 30px;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border: 2px solid #a64b00;
-    border-radius: 15px;
-    max-width: 500px;
-    text-align: center;
-    display: none;
-  }
 </style>
 </head>
 <body>
 
-<div class="hamburger" id="hamburger">
-  <div></div>
-  <div></div>
-  <div></div>
-</div>
-
+<!-- Hamburger Menu -->
+<div class="hamburger" id="hamburger"><div></div><div></div><div></div></div>
 <nav class="side-menu" id="sideMenu">
   <a href="index.html">Page 1</a>
   <a href="page2.html">Page 2</a>
@@ -129,72 +60,149 @@
   <a href="page4.html">Page 4</a>
 </nav>
 
-<div class="content">
-  <h1>Plant the Seed</h1>
-  <p>Drag the seed to the green mound to make it grow.</p>
-
-  <div class="ground" id="ground"></div>
-  <div class="seed" id="seed"></div>
-  <div class="plant" id="plant"></div>
-
-  <div class="scripture-box" id="scriptureBox">
-    <p>But in my distress I cried out to the Lord; yes, I prayed to my God for help.<br>
-    He heard me from his sanctuary; my cry to him reached his ears. <strong>Psalm 18:6</strong></p>
-  </div>
+<div id="scripture">
+  But in my distress I cried out to the Lord; yes, I prayed to my God for help.
+  He heard me from his sanctuary; my cry to him reached his ears.<br>Psalm 18:6
 </div>
 
 <script>
-const hamburger = document.getElementById('hamburger');
-const sideMenu = document.getElementById('sideMenu');
-hamburger.addEventListener('click', ()=>{
-  hamburger.classList.toggle('open');
-  sideMenu.classList.toggle('open');
-});
+    /* ===== Hamburger ===== */
+    const hamburger = document.getElementById('hamburger');
+  const sideMenu = document.getElementById('sideMenu');
+  hamburger.addEventListener('click', ()=>{
+    hamburger.classList.toggle('open');
+    sideMenu.classList.toggle('open');
+  });
+  
+let maxDepth=10, baseLength, growthSpeed=0.005, angle=30;
+let trees=[], cloud=null, raindrops=[], draggingCloud=null;
+let raining=false, growthStarted=false, growthTimer=0;
 
-// Drag & drop seed
-const seed = document.getElementById('seed');
-const ground = document.getElementById('ground');
-const plant = document.getElementById('plant');
-const scriptureBox = document.getElementById('scriptureBox');
+function setup(){
+  createCanvas(windowWidth, windowHeight);
+  angleMode(DEGREES);
+  baseLength = height/6;
 
-let isDragging = false;
-let offset = {x:0, y:0};
+  // Trees closer together
+  let positions = [-120,-60,0,60,120];
+  let heights = [0.7,0.9,1.2,0.9,0.7];
+  for(let i=0;i<5;i++){
+    trees.push({x: positions[i], growth:0, heightFactor:heights[i], lineWeight:1});
+  }
 
-seed.addEventListener('mousedown', e => {
-  isDragging = true;
-  offset.x = seed.offsetLeft - e.clientX;
-  offset.y = seed.offsetTop - e.clientY;
-  seed.style.cursor = 'grabbing';
-});
+  // One big cloud
+  cloud = {x: width/2, y:150, size:150, active:true};
+}
 
-document.addEventListener('mouseup', e => {
-  if(isDragging){
-    isDragging = false;
-    seed.style.cursor = 'grab';
+function draw(){
+  drawBackground();
+  drawGround();
 
-    // Check if seed is over the ground
-    const seedRect = seed.getBoundingClientRect();
-    const groundRect = ground.getBoundingClientRect();
+  // Draw cloud if active
+  if(cloud.active){
+    fill(255,200);
+    noStroke();
+    ellipse(cloud.x,cloud.y,cloud.size,cloud.size*0.6);
+    ellipse(cloud.x-cloud.size*0.4,cloud.y,cloud.size*0.5,cloud.size*0.4);
+    ellipse(cloud.x+cloud.size*0.4,cloud.y,cloud.size*0.5,cloud.size*0.4);
 
-    if(seedRect.bottom > groundRect.top && 
-       seedRect.top < groundRect.bottom &&
-       seedRect.left < groundRect.right &&
-       seedRect.right > groundRect.left){
-      // Plant the seed
-      seed.style.display = 'none';
-      plant.style.display = 'block';
-      plant.style.height = '100px'; // animate growth
-      scriptureBox.style.display = 'block';
+    if(raining && frameCount % 3 === 0){
+      let rx = cloud.x + random(-cloud.size*0.4, cloud.size*0.4);
+      let ry = cloud.y + cloud.size*0.3;
+      raindrops.push({x: rx, y: ry, size: random(3,6), speed: random(3,6)});
     }
   }
-});
 
-document.addEventListener('mousemove', e => {
-  if(isDragging){
-    seed.style.left = e.clientX + offset.x + 'px';
-    seed.style.top = e.clientY + offset.y + 'px';
+  // Update raindrops
+  for(let i=raindrops.length-1;i>=0;i--){
+    let r = raindrops[i];
+    fill(100,180,255,180); noStroke(); ellipse(r.x,r.y,r.size,r.size*1.5);
+    r.y += r.speed;
+
+    trees.forEach(t=>{
+      let tx = width/2 + t.x;
+      let ty = height - height/6;
+      if(r.y > ty - baseLength*t.heightFactor && abs(r.x - tx) < 15){
+        t.growth = min(t.growth + 0.002, 1);
+      }
+    });
+
+    if(r.y > height - height/6) raindrops.splice(i,1);
   }
-});
+
+  translate(width/2, height - height/6);
+
+  if(growthStarted){
+    growthTimer += deltaTime/1000;
+    if(growthTimer >= 3){
+      trees.forEach(t=>{
+        if(t.growth < 1) t.growth += growthSpeed;
+      });
+    }
+  }
+
+  trees.forEach(t=>{
+    let dynamicAngle = t.growth>=1 ? map(mouseX,0,width,10,70) : angle*t.growth;
+    push(); translate(t.x, 0); drawTree(t.growth,dynamicAngle,t.heightFactor,t.lineWeight); pop();
+  });
+
+  if(cloud.active && trees.every(t=>t.growth>=1)){
+    cloud.active = false;
+    raining = false;
+  }
+
+  if(trees[2].growth>=1){
+    const s = document.getElementById('scripture');
+    s.style.opacity=1;
+    s.style.transform='translateX(-50%) translateY(-50%)';
+  }
+}
+
+function drawTree(growthVal, dynamicAngle,heightFactor,lineWeight){
+  strokeWeight(lineWeight);
+  let h = baseLength*growthVal*heightFactor;
+  stroke(101,140,115);
+  line(0,0,0,-h);
+  translate(0,-h);
+  branch(h,0,dynamicAngle,lineWeight);
+}
+
+function branch(h,level,dynamicAngle,lineWeight){
+  if(level>=maxDepth) return;
+  h*=0.66;
+  let c1=color(150,180,160), c2=color(200,220,200);
+  let branchColor=lerpColor(c1,c2,level/maxDepth);
+  stroke(branchColor);
+  strokeWeight(max(1,lineWeight-level*0.2));
+  push(); rotate(dynamicAngle); line(0,0,0,-h); translate(0,-h); branch(h,level+1,dynamicAngle,lineWeight); pop();
+  push(); rotate(-dynamicAngle); line(0,0,0,-h); translate(0,-h); branch(h,level+1,dynamicAngle,lineWeight); pop();
+}
+
+function drawBackground(){
+  let gradient = drawingContext.createLinearGradient(0,0,0,height);
+  gradient.addColorStop(0,'#f0f4ef');
+  gradient.addColorStop(0.5,'#dce4d6');
+  gradient.addColorStop(1,'#bcd9c6');
+  drawingContext.fillStyle=gradient; noStroke(); rect(0,0,width,height);
+}
+
+function drawGround(){
+  noStroke();
+  fill(180,200,170,200);
+  rect(0,height-height/6,width,height/6);
+}
+
+function mousePressed(){
+  if(cloud.active && dist(mouseX,mouseY,cloud.x,cloud.y)<cloud.size/2){
+    draggingCloud = cloud;
+    raining = true;
+    growthStarted = true;
+  }
+}
+function mouseReleased(){ draggingCloud=null; }
+function mouseDragged(){ if(draggingCloud){ draggingCloud.x = mouseX; draggingCloud.y = mouseY; } }
+
+function windowResized(){ resizeCanvas(windowWidth,windowHeight); baseLength=height/6; }
 </script>
 
 </body>
